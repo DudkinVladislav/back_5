@@ -1,4 +1,4 @@
-﻿﻿﻿<html lang="ru">
+<html lang="ru">
   <head>
     <meta charset="utf-8">
 <style>body { margin:0;
@@ -91,9 +91,9 @@ if (!empty($messages)) {
         <li>
           <?php
           if (!empty($_COOKIE[session_name()]) && !empty($_SESSION['login']))
-            print('<a href="./?quit=1" class = "gradient-button" title = "Log in">Выйти</a>');
+            {}
           else
-            print('<a href="login.php" class = "gradient-button"  title = "Log out">Войти</a>');
+            {print('<a href="login.php" class = "gradient-button"  title = "Log out">Войти</a>');}
           ?></li>
       </ul>
 	 <img src="./img/PuTTY.png" alt="PuTTY">  
