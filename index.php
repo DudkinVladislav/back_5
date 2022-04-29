@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Отправляем браузеру правильную кодировку,
 // файл index.php должен быть в кодировке UTF-8 без BOM.
 header('Content-Type: text/html; charset=UTF-8');
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     // предварительно санитизовав.
     $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
     
-    $stmt12 = $db->prepare("SELECT * FROM human WHERE id = ?");
+    $stmt12 = $db->prepare("SELECT * FROM application WHERE id = ?");
     $stmt12 -> execute([$_SESSION['uid']]);
     $row = $stmt12->fetch(PDO::FETCH_ASSOC);
     $values['name'] = strip_tags($row['name']);
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $values['date'] = $row['date'];
     $values['pol'] = $row['pol'];
     $values['parts'] = $row['parts'];
-    $values['biography'] = strip_tags($row['biography']);
+    $values['biography'] = strip_tags($row['bio']);
 
   
     $stmt12 = $db->prepare("SELECT * FROM abilities WHERE id = ?");
@@ -199,15 +199,20 @@ $parts=$_POST['parts'];
       $stmt = $db->prepare("INSERT INTO abilities SET id = ?, ability = ?");
       $stmt -> execute([$_SESSION['uid'], $item]);
     }
+// Сохраняем куку с признаком успешного сохранения.
+  setcookie('save', '1');
+
+  // Делаем перенаправление.
+  header('Location: index.php');
   }
   else {
     //Создаём уникальный логин и пароль
    $st=uniqid();
     $fir=md5($st);
     $login=substr($st,10,20);
-    $pass=md5($fir);
+    $pass2=md5($fir);
      setcookie('login', $login);
-    setcookie('pass', $fir);
+    setcookie('pass', $pass2);
   // Сохранение в базу данных.
    
 $user = 'u46613';
@@ -228,7 +233,7 @@ try {
       $stmt -> execute([$count, $item]);
     }
   $stmt = $db->prepare("INSERT INTO login_pass SET id = ?, login = ?, pass = ?");
-    $stmt -> execute([$count, $login, $pass]);
+    $stmt -> execute([$count, $login, md5($pass2)]);
 }
 catch(PDOException $e){
   print('Error : ' . $e->getMessage());
@@ -239,6 +244,7 @@ catch(PDOException $e){
   setcookie('save', '1');
 
   // Делаем перенаправление.
-  header('Location: ./');
+  header('Location: index.php');
+}
 }
 ?>
