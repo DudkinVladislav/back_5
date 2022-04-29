@@ -43,7 +43,7 @@ if (!empty($_SESSION['login'])) {
 // и другие сведения о клиненте и сервере, например метод текущего запроса $_SERVER['REQUEST_METHOD'].
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (!empty($_GET['nologin']))
-    print("<div class="error">Пользователя с таким логином не существует</div>");
+    print("<div>Пользователя с таким логином не существует</div>");
   if (!empty($_GET['wrongpass']))
     print("<div class="error">Неверный пароль!</div>");
 ?>
