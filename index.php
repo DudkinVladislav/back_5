@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $stmt12 = $db->prepare("SELECT * FROM abilities WHERE id = ?");
     $stmt12 -> execute([$_SESSION['uid']]);
     $abilities = array();
-    while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
+    while($row = $stmt12->fetch(PDO::FETCH_ASSOC)){
       array_push($abilities, strip_tags($row['ability']));
     }
     $values['abilities'] = $abilities;
