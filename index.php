@@ -241,3 +241,4 @@ catch(PDOException $e){
   // Делаем перенаправление.
   header('Location: ./');
 }
+?>
