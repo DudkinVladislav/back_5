@@ -36,9 +36,9 @@ if (!empty($messages)) {
 ?>
 	   <?php
         if (!empty($_COOKIE[session_name()]) && !empty($_SESSION['login']))
-          print('<h3 id="form"> FORM<br/>(режим редактирования) </h3>');
+          print('<h3 id="form"> Форма в режиме редактирования </h3>');
         else
-          print('<h3 id="form"> FORM </h3>');
+          print('<h3 id="form"> Форма </h3>');
         ?>
 	  <br>
 	  <br>
