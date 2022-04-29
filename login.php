@@ -45,32 +45,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (!empty($_GET['nologin']))
     print("<div>Пользователя с таким логином не существует</div>");
   if (!empty($_GET['wrongpass']))
-    print("<div class="error">Неверный пароль!</div>");
+    print("<div>Неверный пароль!</div>");
 ?>
     <form action="" method="POST">
       <input type="text" name="login" placeholder="логин"/>
-      <input type="text" name="login" placeholder="пароль"/>
+      <input type="text" name="pass" placeholder="пароль"/>
       <input type="submit" name="submit" id="submit" value="Войти" />
     </form>
     <?php
 }
     else{
       $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
-  $stmt1 = $db->prepare("SELECT us_id, hash_pass FROM login_pass WHERE login = ?");
+  $stmt1 = $db->prepare("SELECT id, pass FROM login_pass WHERE login = ?");
   $stmt1 -> execute([$_POST['login']]);
   $row = $stmt1->fetch(PDO::FETCH_ASSOC);
   if (!$row) {
     header('Location: ?nologin=1');
     exit();
   }
-  if($row['hash_pass'] != md5($_POST['pass'])) {
+  if($row['pass'] != md5($_POST['pass'])) {
     header('Location: ?wrongpass=1');
     exit();
   }
   // Если все ок, то авторизуем пользователя.
   $_SESSION['login'] = $_POST['login'];
   // Записываем ID пользователя.
-  $_SESSION['uid'] = $row["us_id"];
+  $_SESSION['uid'] = $row["id"];
 
   // Делаем перенаправление.
   header('Location: ./');
