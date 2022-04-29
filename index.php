@@ -11,7 +11,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
   $messages = array();
   if (!empty($_COOKIE['save'])) {
     // Если есть параметр save, то выводим сообщение пользователю.
-    setcookie('save', '', 100000); 
+    setcookie('save', '', 100000);
+    setcookie('login', '', 100000);
+    setcookie('pass', '', 100000);
     $messages[] = 'Спасибо, результаты сохранены.';
       // Если в куках есть пароль, то выводим сообщение.
     if (!empty($_COOKIE['pass'])) {
@@ -61,13 +63,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
   $values['name'] = empty($_COOKIE['name_value']) ? '' : strip_tags($_COOKIE['name_value']);
   $values['email'] = empty($_COOKIE['email_value']) ? '' :  strip_tags($_COOKIE['email_value']);
   $values['date'] = empty($_COOKIE['date_value']) ? '' :  strip_tags($_COOKIE['date_value']);
-  $values['pol'] = empty($_COOKIE['pol_value']) ? '' : $_COOKIE['pol_value'];
-  $values['parts'] = empty($_COOKIE['parts_value']) ? '' : $_COOKIE['parts_value'];
+  $values['pol'] = empty($_COOKIE['pol_value']) ? '' : strip_tags($_COOKIE['pol_value']);
+  $values['parts'] = empty($_COOKIE['parts_value']) ? '' : strip_tags($_COOKIE['parts_value']);
   $values['biography'] = empty($_COOKIE['biography_value']) ? '' :  strip_tags($_COOKIE['biography_value']);
   if(empty($_COOKIE['abilities_value']))
     $values['abilities'] = array();
   else
     $values['abilities'] = json_decode($_COOKIE['abilities_value'], true);
+   // Если нет предыдущих ошибок ввода, есть кука сессии, начали сессию и
+  // ранее в сессию записан факт успешного логина.
+  session_start();
+  if (!empty($_COOKIE[session_name()]) && !empty($_SESSION['login'])) {
+    // загрузить данные пользователя из БД
+    // и заполнить переменную $values,
+    // предварительно санитизовав.
+    $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
+    
+    $stmt12 = $db->prepare("SELECT * FROM human WHERE id = ?");
+    $stmt12 -> execute([$_SESSION['uid']]);
+    $row = $stmt12->fetch(PDO::FETCH_ASSOC);
+    $values['name'] = strip_tags($row['name']);
+    $values['email'] = strip_tags($row['email']);
+    $values['date'] = $row['date'];
+    $values['pol'] = $row['pol'];
+    $values['parts'] = $row['parts'];
+    $values['biography'] = strip_tags($row['biography']);
+
+  
+    $stmt12 = $db->prepare("SELECT * FROM abilities WHERE id = ?");
+    $stmt12 -> execute([$_SESSION['uid']]);
+    $abilities = array();
+    while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
+      array_push($abilities, strip_tags($row['ability']));
+    }
+    $values['abilities'] = $abilities;
+
+    printf('Вход с логином %s, uid %d', $_SESSION['login'], $_SESSION['uid']);
+  }
+  
+  
   // Включаем содержимое файла form.php.
   // В нем будут доступны переменные $messages, $errors и $values для вывода 
   // сообщений, полей с ранее заполненными данными и признаками ошибок.
@@ -146,13 +180,39 @@ $date=$_POST['date'];
 $bio=$_POST['biography'];
 $pol=$_POST['pol'];
 $parts=$_POST['parts'];
+ // Проверяем меняются ли ранее сохраненные данные или отправляются новые.
+  if (!empty($_COOKIE[session_name()]) &&
+     session_start() && !empty($_SESSION['login'])) {
+   // Перезаписываем данные в БД новыми данными,
+   // кроме логина и пароля.
+   //Изменение данных в основной таблице
+   $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
+   $stmt2 = $db->prepare("UPDATE application SET name = ?, email = ?, date = ?, pol = ?, parts = ?, bio = ? WHERE id =?");
+   $stmt2 -> execute([$_POST['name'], $_POST['email'], $_POST['date'], $_POST['pol'], $_POST['parts'], $_POST['biography'], $_SESSION['uid']]);
+   //Изменение данных в таблице способностей 
+    $stmt2 = $db->prepare("DELETE FROM abilities WHERE id = ?");
+    $stmt2 -> execute([$_SESSION['uid']]);
 
+    $abilities = $_POST['abilities'];
+
+    foreach($abilities as $item) {
+      $stmt = $db->prepare("INSERT INTO abilities SET id = ?, ability = ?");
+      $stmt -> execute([$_SESSION['uid'], $item]);
+    }
+  }
+  else {
+    //Создаём уникальный логин и пароль
+   $st=uniqid();
+    $fir=md5($st);
+    $login=substr($st,10,20);
+    $pass=md5($fir);
+     setcookie('login', $login);
+    setcookie('pass', $fir);
   // Сохранение в базу данных.
-
+   
 $user = 'u46613';
 $pass = '1591065';
 $db = new PDO('mysql:host=localhost; dbname=u46613', $user, $pass, array(PDO::ATTR_PERSISTENT => true));
-
 // Подготовленный запрос. Не именованные метки.
 try {
   $stmt = $db->prepare("INSERT INTO application SET name = ?, email = ?, date=?, pol= ?, parts= ?, bio= ?");
@@ -167,6 +227,8 @@ try {
       $stmt = $db->prepare("INSERT INTO abilities SET id = ?, ability = ?");
       $stmt -> execute([$count, $item]);
     }
+  $stmt = $db->prepare("INSERT INTO login_pass SET id = ?, login = ?, pass = ?");
+    $stmt -> execute([$count, $login, $pass]);
 }
 catch(PDOException $e){
   print('Error : ' . $e->getMessage());
@@ -177,5 +239,5 @@ catch(PDOException $e){
   setcookie('save', '1');
 
   // Делаем перенаправление.
-  header('Location: index.php');
+  header('Location: ./');
 }
