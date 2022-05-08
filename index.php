@@ -143,6 +143,7 @@ else {
 }
 }
 }
+else{
 $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
   $stmt1 = $db->prepare("SELECT id, pass FROM admin WHERE login = ?");
   $stmt1 -> execute([$_SERVER['PHP_AUTH_USER']]);
@@ -193,7 +194,7 @@ print('<br>');
 printf("Biography - $bio");
 print('<br>');
 print('<br>');
-}}
+}}}
 ?>
     <form action="" method="POST">
       <input type="text" name="redact_id" placeholder="id"/>
