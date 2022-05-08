@@ -1,208 +1,250 @@
-<html lang="ru">
-  <head>
-    <meta charset="utf-8">
-<style>body { margin:0;
-	display:flex;
-	flex-direction:column;
-text-align:center;
-background-color:#ff9911;}
-	  /* Сообщения об ошибках и поля с ошибками выводим с красным бордюром. */
-.error {
-	border: 2px solid red;
-	}
-	  </style>
-<title>Задание 6</title>
-</head>
-</html>
-
-/**
- * Задача 6. Реализовать вход администратора с использованием
- * HTTP-авторизации для просмотра и удаления результатов.
- **/
-
-// Пример HTTP-аутентификации.
-// PHP хранит логин и пароль в суперглобальном массиве $_SERVER.
-// Подробнее см. стр. 26 и 99 в учебном пособии Веб-программирование и веб-сервисы.
 <?php
+// Отправляем браузеру правильную кодировку,
+// файл index.php должен быть в кодировке UTF-8 без BOM.
 header('Content-Type: text/html; charset=UTF-8');
-if ($_SERVER['REQUEST_METHOD'] == 'POST') 
-{
-if (!empty($_POST['delete_id']))
-{
-$db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
-$stmt31 = $db->prepare("SELECT * FROM application WHERE id = ?");
-$stmt31 -> execute([$_POST['delete_id']]);
-$row31 = $stmt31->fetch(PDO::FETCH_ASSOC);
-if (!$row31) 
-{
-    header('Location: ?delete_error=1');
-    exit();
-}
-else
-{
-$stmt111 = $db->prepare("DELETE FROM login_pass WHERE id = ?");
-$stmt111 -> execute([$_POST['delete_id']]);
-$stmt4 = $db->prepare("DELETE FROM abilities WHERE id = ?");
-$stmt4 -> execute([$_POST['delete_id']]);
-$stmt3 = $db->prepare("DELETE FROM application WHERE id = ?");
-$stmt3 -> execute([$_POST['delete_id']]);
-header('Location: ./');
-}
-}
-if(!empty($_POST['redact_id']))
-{
-$db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
-$stmt5 = $db->prepare("SELECT * FROM application WHERE id = ?");
-$stmt5 -> execute([$_POST['redact_id']]);
-$row5 = $stmt5->fetch(PDO::FETCH_ASSOC);
-if (!$row5) 
-{
-    header('Location: ?redact_error=1');
-    exit();
-}
-else
-{
-setcookie('redact_id', $_POST['redact_id'], time() + 60 * 60);
-$values = array();
-$values['name'] = strip_tags($row5['name']);
-$values['email'] = strip_tags($row5['email']);
-$values['date'] = $row5['date'];
-$values['pol'] = $row5['pol'];
-$values['parts'] = $row5['parts'];
-$values['biography'] = strip_tags($row5['bio']);
-$stmt32 = $db->prepare("SELECT * FROM abilities WHERE id = ?");
-$stmt32 -> execute([$_POST['redact_id']]);
-$abilities1 = array();
-while($row32 = $stmt32->fetch(PDO::FETCH_ASSOC))
-{
-    array_push($abilities1, strip_tags($row32['ability']));
-}
-    $values['abilities'] = $abilities1;
-}
-include('form.php');
+
+// В суперглобальном массиве $_SERVER PHP сохраняет некторые заголовки запроса HTTP
+// и другие сведения о клиненте и сервере, например метод текущего запроса $_SERVER['REQUEST_METHOD'].
+if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+  // В суперглобальном массиве $_GET PHP хранит все параметры, переданные в текущем запросе через URL.
+   // Массив для временного хранения сообщений пользователю.
+  $messages = array();
+  if (!empty($_COOKIE['save'])) {
+    // Если есть параметр save, то выводим сообщение пользователю.
+    setcookie('save', '', 100000);
+    setcookie('login', '', 100000);
+    setcookie('pass', '', 100000);
+    $messages[] = 'Спасибо, результаты сохранены.';
+      // Если в куках есть пароль, то выводим сообщение.
+    if (!empty($_COOKIE['pass'])) {
+      $messages[] = sprintf('Вы можете <a href="login.php">войти</a> с логином <strong>%s</strong>
+        и паролем <strong>%s</strong> для изменения данных.',
+        strip_tags($_COOKIE['login']),
+        strip_tags($_COOKIE['pass']));
+    }
+  }
+// Складываем признак ошибок в массив.
+ $errors = array();
+ $errors['name'] = !empty($_COOKIE['name_error']);
+ $errors['email'] = !empty($_COOKIE['email_error']);
+ $errors['date'] = !empty($_COOKIE['date_error']);
+ $errors['pol'] = !empty($_COOKIE['pol_error']);
+ $errors['parts'] = !empty($_COOKIE['parts_error']);
+ $errors['biography']=!empty($_COOKIE['biography_error']);
+// Выдаем сообщения об ошибках.
+ if ($errors['name']) {
+    // Удаляем куку, указывая время устаревания в прошлом.
+    setcookie('name_error', '', 100000);
+    // Выводим сообщение.
+    $messages[] = '<div class="error"> Неверный ввод имени.</div>';
+  }
+ if ($errors['email']) {
+    setcookie('email_error', '', 100000);
+    $messages[] = '<div class="error">Неправельный ввод email.</div>';
+  }
+ if ($errors['date']) {
+    setcookie('date_error', '', 100000);
+    $messages[] = '<div class="error">Выберите дату.</div>';
+  }
+ if ($errors['pol']) {
+    setcookie('pol_error', '', 100000);
+    $messages[] = '<div class="error">Выберите пол.</div>';
+  }
+ if ($errors['parts']) {
+    setcookie('parts_error', '', 100000);
+    $messages[] = '<div class="error">Укажите количество конечностей.</div>';
+  }
+  if ($errors['biography']) {
+    setcookie('biography_error', '', 100000);
+    $messages[] = '<div class="error">Раскажите о себе.</div>';
+  }
+// Складываем предыдущие значения полей в массив, если есть.
+  $values = array();
+  $values['name'] = empty($_COOKIE['name_value']) ? '' : strip_tags($_COOKIE['name_value']);
+  $values['email'] = empty($_COOKIE['email_value']) ? '' :  strip_tags($_COOKIE['email_value']);
+  $values['date'] = empty($_COOKIE['date_value']) ? '' :  strip_tags($_COOKIE['date_value']);
+  $values['pol'] = empty($_COOKIE['pol_value']) ? '' : strip_tags($_COOKIE['pol_value']);
+  $values['parts'] = empty($_COOKIE['parts_value']) ? '' : strip_tags($_COOKIE['parts_value']);
+  $values['biography'] = empty($_COOKIE['biography_value']) ? '' :  strip_tags($_COOKIE['biography_value']);
+  if(empty($_COOKIE['abilities_value']))
+    $values['abilities'] = array();
+  else
+    $values['abilities'] = json_decode($_COOKIE['abilities_value'], true);
+   // Если нет предыдущих ошибок ввода, есть кука сессии, начали сессию и
+  // ранее в сессию записан факт успешного логина.
+  session_start();
+  if (!empty($_COOKIE[session_name()]) && !empty($_SESSION['login'])) {
+    // загрузить данные пользователя из БД
+    // и заполнить переменную $values,
+    // предварительно санитизовав.
+    $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
+    
+    $stmt12 = $db->prepare("SELECT * FROM application WHERE id = ?");
+    $stmt12 -> execute([$_SESSION['uid']]);
+    $row = $stmt12->fetch(PDO::FETCH_ASSOC);
+    $values['name'] = strip_tags($row['name']);
+    $values['email'] = strip_tags($row['email']);
+    $values['date'] = $row['date'];
+    $values['pol'] = $row['pol'];
+    $values['parts'] = $row['parts'];
+    $values['biography'] = strip_tags($row['bio']);
+
+  
+    $stmt12 = $db->prepare("SELECT * FROM abilities WHERE id = ?");
+    $stmt12 -> execute([$_SESSION['uid']]);
+    $abilities = array();
+    while($row = $stmt12->fetch(PDO::FETCH_ASSOC)){
+      array_push($abilities, strip_tags($row['ability']));
+    }
+    $values['abilities'] = $abilities;
+
+    printf('Вход с логином %s, uid %d', $_SESSION['login'], $_SESSION['uid']);
+  }
+  
+  
+  // Включаем содержимое файла form.php.
+  // В нем будут доступны переменные $messages, $errors и $values для вывода 
+  // сообщений, полей с ранее заполненными данными и признаками ошибок.
+  include('form.php');
 }
 else{
-if(!empty($_POST['pol']))
-   {
-     $errors = array();
-     $errors1 = FALSE;
+// Иначе, если запрос был методом POST, т.е. нужно проверить данные и сохранить их в XML-файл.
+
+// Проверяем ошибки.
+$errors = FALSE;
 if (empty($_POST['name'])) {
- $errors['name']=1;
-    $errors1 = TRUE;
+ setcookie('name_error', '1', time() + 24 * 60 * 60);
+    $errors = TRUE;
 }
+  else {
+    // Сохраняем ранее введенное в форму значение на месяц.
+    setcookie('name_value', $_POST['name'], time() + 12 * 31 * 24 * 60 * 60);
+  }
 if (empty($_POST['email'])) {
-   $errors['email']=1;
-    $errors1 = TRUE;
+  setcookie('email_error', '1', time() + 24 * 60 * 60);
+    $errors = TRUE;
+  }
+  else {
+    setcookie('email_value', $_POST['email'], time() + 12 * 31 * 24 * 60 * 60);
   }
 if (empty($_POST['date'])) {
-    $errors1 = TRUE;
-    $errors['date']=1;
+  setcookie('date_error', '1', time() + 24 * 60 * 60);
+    $errors = TRUE;
+  }
+  else {
+    setcookie('date_value', $_POST['date'], time() + 12 * 31 * 24 * 60 * 60);
   }
   if (empty($_POST['pol'])) {
-    $errors1 = TRUE;
-    $errors['pol']=1;
+    setcookie('pol_error', '1', time() + 24 * 60 * 60);
+    $errors = TRUE;
+  }
+  else {
+    setcookie('pol_value', $_POST['pol'], time() + 12 * 31 * 24 * 60 * 60);
   }
    if (empty($_POST['parts'])) {
-    $errors1 = TRUE;
-     $errors['parts']=1;
+    setcookie('parts_error', '1', time() + 24 * 60 * 60);
+    $errors = TRUE;
+  }
+  else {
+    setcookie('parts_value', $_POST['parts'], time() + 12 * 31 * 24 * 60 * 60);
   }
 if (empty($_POST['biography'])) {
-    $errors1 = TRUE;
-  $errors['biography']=1;
+  setcookie('biography_error', '1', time() + 24 * 60 * 60);
+    $errors = TRUE;
+  }
+  else {
+    setcookie('biography_value', $_POST['biography'], time() + 12 * 31 * 24 * 60 * 60);
   }
    if(!empty($_POST['abilities'])){
     $json = json_encode($_POST['abilities']);
     setcookie ('abilities_value', $json, time() + 12 * 31 * 24 * 60 * 60);
   }
-if ($errors1) {
-  $values = array();
-$values['name'] = strip_tags($_POST['name']);
-$values['email'] = strip_tags($_POST['email']);
-$values['date'] = $_POST['date'];
-$values['pol'] = $_POST['pol'];
-$values['parts'] = $_POST['parts'];
-$values['biography'] = strip_tags($_POST['biography']);
-$values['abilities'] = $_POST['abilities']; 
-  include('form1.php');
+if ($errors) {
+  // При наличии ошибок перезагружаем страницу и завершаем работу скрипта.
+  header('Location: index.php');
+    exit();
 }
 else {
- //Изменение данных в основной таблице
+    // Удаляем Cookies с признаками ошибок.
+    setcookie('name_error', '', 100000);
+    setcookie('email_error', '', 100000);
+    setcookie('date_error', '', 100000);
+    setcookie('pol_error', '', 100000);
+    setcookie('parts_error', '', 100000);
+    setcookie('biography_error', '', 100000);
+  }
+  
+$name=$_POST['name'];
+$email=$_POST['email'];
+$date=$_POST['date'];
+$bio=$_POST['biography'];
+$pol=$_POST['pol'];
+$parts=$_POST['parts'];
+ // Проверяем меняются ли ранее сохраненные данные или отправляются новые.
+  if (!empty($_COOKIE[session_name()]) &&
+     session_start() && !empty($_SESSION['login'])) {
+   // Перезаписываем данные в БД новыми данными,
+   // кроме логина и пароля.
+   //Изменение данных в основной таблице
    $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
-   $stmt222 = $db->prepare("UPDATE application SET name = ?, email = ?, date = ?, pol = ?, parts = ?, bio = ? WHERE id =?");
-   $stmt222 -> execute([$_POST['name'], $_POST['email'], $_POST['date'], $_POST['pol'], $_POST['parts'], $_POST['biography'], $_COOKIE['redact_id']]);
+   $stmt2 = $db->prepare("UPDATE application SET name = ?, email = ?, date = ?, pol = ?, parts = ?, bio = ? WHERE id =?");
+   $stmt2 -> execute([$_POST['name'], $_POST['email'], $_POST['date'], $_POST['pol'], $_POST['parts'], $_POST['biography'], $_SESSION['uid']]);
    //Изменение данных в таблице способностей 
-    $stmt222 = $db->prepare("DELETE FROM abilities WHERE id = ?");
-    $stmt222 -> execute([$_COOKIE['redact_id']]);
+    $stmt2 = $db->prepare("DELETE FROM abilities WHERE id = ?");
+    $stmt2 -> execute([$_SESSION['uid']]);
+
     $abilities = $_POST['abilities'];
+
     foreach($abilities as $item) {
-      $stmt232 = $db->prepare("INSERT INTO abilities SET id = ?, ability = ?");
-      $stmt232 -> execute([$_COOKIE['redact_id'], $item]);
+      $stmt = $db->prepare("INSERT INTO abilities SET id = ?, ability = ?");
+      $stmt -> execute([$_SESSION['uid'], $item]);
     }
+// Сохраняем куку с признаком успешного сохранения.
+  setcookie('save', '1');
+
+  // Делаем перенаправление.
+  header('Location: index.php');
+  }
+  else {
+    //Создаём уникальный логин и пароль
+   $st=uniqid();
+    $fir=md5($st);
+    $login=substr($st,10,20);
+    $pass2=md5($fir);
+     setcookie('login', $login);
+    setcookie('pass', $pass2);
+  // Сохранение в базу данных.
+   
+$user = 'u46613';
+$pass = '1591065';
+$db = new PDO('mysql:host=localhost; dbname=u46613', $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+// Подготовленный запрос. Не именованные метки.
+try {
+  $stmt = $db->prepare("INSERT INTO application SET name = ?, email = ?, date=?, pol= ?, parts= ?, bio= ?");
+  $stmt -> execute([$_POST['name'], $_POST['email'], $_POST['date'], $_POST['pol'], $_POST['parts'], $_POST['biography']]);
+  
+  $res = $db->query("SELECT max(id) FROM application");
+    $row = $res->fetch();
+    $count = (int) $row[0];
+  $abilities = $_POST['abilities'];
+  foreach($abilities as $item) {
+      // Запись в таблицу abilities
+      $stmt = $db->prepare("INSERT INTO abilities SET id = ?, ability = ?");
+      $stmt -> execute([$count, $item]);
+    }
+  $stmt = $db->prepare("INSERT INTO login_pass SET id = ?, login = ?, pass = ?");
+    $stmt -> execute([$count, $login, md5($pass2)]);
+}
+catch(PDOException $e){
+  print('Error : ' . $e->getMessage());
+  exit();
+}
+
+ // Сохраняем куку с признаком успешного сохранения.
+  setcookie('save', '1');
+
   // Делаем перенаправление.
   header('Location: index.php');
 }
 }
-}
-else{
-$db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
-  $stmt1 = $db->prepare("SELECT id, pass FROM admin WHERE login = ?");
-  $stmt1 -> execute([$_SERVER['PHP_AUTH_USER']]);
-  $row = $stmt1->fetch(PDO::FETCH_ASSOC);
-  if (!$row || 
-       md5($_SERVER['PHP_AUTH_PW']) != $row['pass']) 
-{
-  header('HTTP/1.1 401 Unanthorized');
-  header('WWW-Authenticate: Basic realm="My site"');
-  print('<h1>401 Требуется авторизация</h1>');
-  exit();
-}
-print('<br>Вы успешно авторизовались и видите защищенные паролем данные.<br><br>');
-if(!empty($_GET['delete_error']))
-{print('<div class=error>Пользователя с таким id не существует!</div><br>');} 
-if(!empty($_GET['redact_error']))
-{print('<div class=error>Пользователя с таким id не существует!</div><br>');}
-// *********
-// Здесь нужно прочитать отправленные ранее пользователями данные и вывести в таблицу.
-// Реализовать просмотр и удаление всех данных.
-// *********
- $stmt2 = $db->prepare("SELECT id FROM application");
- $stmt2 -> execute();
- $ids = array();
-
-while($row = $stmt2->fetch(PDO::FETCH_ASSOC)){
-      array_push($ids, $row['id']);
-    }
-foreach($ids as $item) {
- $stmt12 = $db->prepare("SELECT * FROM abilities WHERE id = ?");
-    $stmt12 -> execute([$item]);
-$abilities = array();
-while($row2 = $stmt12->fetch(PDO::FETCH_ASSOC)){
-      array_push($abilities, strip_tags($row2['ability']));
-    }
-$stmt22 = $db->prepare("SELECT * FROM application WHERE id = ?");
-    $stmt22 -> execute([$item]);
-    $row3 = $stmt22->fetch(PDO::FETCH_ASSOC);
-$name = $row3['name'];
-$email = $row3['email'];
-$date = $row3['date'];
-$pol = $row3['pol'];
-$part = $row3['parts'];
-$bio = $row3['bio'];
-$powers= implode(", ", $abilities);
-printf("id - $item, Name - $name, Email - $email, Date - $date, Pol - $pol, Parts - $part, Abilities - $powers");
-print('<br>');
-printf("Biography - $bio");
-print('<br>');
-print('<br>');
-}}}
 ?>
-    <form action="" method="POST">
-      <input type="text" name="redact_id" placeholder="id"/>
-      <input type="submit" name="submit" id="submit" value="Изменить данные пользователя" />
-    </form>
-<br>
- <form action="" method="POST">
-      <input type="text" name="delete_id" placeholder="id"/>
-      <input type="submit" name="submit" id="submit" value="Удалить данные о пользователе" />
-    </form>
-<a href="index.php" class = "gradient-button"  title = "return">Вернуться к списку данных</a>
