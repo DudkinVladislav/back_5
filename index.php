@@ -14,8 +14,7 @@ background-color:#ff9911;}
 <title>Задание 6</title>
 </head>
 </html>
-<?php
-header('Content-Type: text/html; charset=UTF-8');
+
 /**
  * Задача 6. Реализовать вход администратора с использованием
  * HTTP-авторизации для просмотра и удаления результатов.
@@ -24,7 +23,8 @@ header('Content-Type: text/html; charset=UTF-8');
 // Пример HTTP-аутентификации.
 // PHP хранит логин и пароль в суперглобальном массиве $_SERVER.
 // Подробнее см. стр. 26 и 99 в учебном пособии Веб-программирование и веб-сервисы.
-
+<?php
+header('Content-Type: text/html; charset=UTF-8');
 if ($_SERVER['REQUEST_METHOD'] == 'POST') 
 {
 if (!empty($_POST['delete_id']))
@@ -114,7 +114,7 @@ if (empty($_POST['biography'])) {
     $json = json_encode($_POST['abilities']);
     setcookie ('abilities_value', $json, time() + 12 * 31 * 24 * 60 * 60);
   }
-if ($errors) {
+if ($errors1) {
   $values = array();
 $values['name'] = strip_tags($_POST['name']);
 $values['email'] = strip_tags($_POST['email']);
@@ -140,8 +140,9 @@ else {
     }
   // Делаем перенаправление.
   header('Location: index.php');
-}                                                  
-
+}
+}
+}
 $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
   $stmt1 = $db->prepare("SELECT id, pass FROM admin WHERE login = ?");
   $stmt1 -> execute([$_SERVER['PHP_AUTH_USER']]);
@@ -154,7 +155,6 @@ $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(P
   print('<h1>401 Требуется авторизация</h1>');
   exit();
 }
-
 print('<br>Вы успешно авторизовались и видите защищенные паролем данные.<br><br>');
 if(!empty($_GET['delete_error']))
 {print('<div class=error>Пользователя с таким id не существует!</div><br>');} 
