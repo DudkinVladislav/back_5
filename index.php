@@ -82,7 +82,7 @@ while($row32 = $stmt32->fetch(PDO::FETCH_ASSOC))
 include('form.php');
 }
 else{
-if(!empty($_POST['pol'])
+if(!empty($_POST['pol']))
    {
      $errors = array();
      $errors1 = FALSE;
@@ -129,20 +129,18 @@ else {
  //Изменение данных в основной таблице
    $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
    $stmt222 = $db->prepare("UPDATE application SET name = ?, email = ?, date = ?, pol = ?, parts = ?, bio = ? WHERE id =?");
-   $stmt222 -> execute([$_POST['name'], $_POST['email'], $_POST['date'], $_POST['pol'], $_POST['parts'], $_POST['biography'], $_SESSION['uid']]);
+   $stmt222 -> execute([$_POST['name'], $_POST['email'], $_POST['date'], $_POST['pol'], $_POST['parts'], $_POST['biography'], $_COOKIE['redact_id']]);
    //Изменение данных в таблице способностей 
     $stmt222 = $db->prepare("DELETE FROM abilities WHERE id = ?");
-    $stmt222 -> execute([$_SESSION['uid']]);
+    $stmt222 -> execute([$_COOKIE['redact_id']]);
     $abilities = $_POST['abilities'];
     foreach($abilities as $item) {
       $stmt232 = $db->prepare("INSERT INTO abilities SET id = ?, ability = ?");
-      $stmt232 -> execute([$_SESSION['uid'], $item]);
+      $stmt232 -> execute([$_COOKIE['redact_id'], $item]);
     }
   // Делаем перенаправление.
   header('Location: index.php');
-}
-                                                          
-                                                    //GET
+}                                                  
 else{
 $db = new PDO('mysql:host=localhost;dbname=u46613', 'u46613', '1591065', array(PDO::ATTR_PERSISTENT => true));
   $stmt1 = $db->prepare("SELECT id, pass FROM admin WHERE login = ?");
