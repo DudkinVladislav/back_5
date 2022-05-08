@@ -193,7 +193,7 @@ print('<br>');
 printf("Biography - $bio");
 print('<br>');
 print('<br>');
-}
+}}
 ?>
     <form action="" method="POST">
       <input type="text" name="redact_id" placeholder="id"/>
